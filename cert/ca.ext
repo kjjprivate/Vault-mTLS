@@ -1,0 +1,2 @@
+basicConstraints = CA:TRUE
+subjectAltName = DNS:example.test
