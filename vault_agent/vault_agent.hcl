@@ -4,8 +4,8 @@ auto_auth {
   method  {
     type = "approle"
     config = {
-      role_id_file_path = "role_id"
-      secret_id_file_path = "secret_id"
+      role_id_file_path = "roleid"
+      secret_id_file_path = "secretid"
     }
   }
 
@@ -23,15 +23,24 @@ vault {
 
 template {
   source      = "nginx-ca.tpl"
-  destination = "../cert/ca.crt"
+  destination = "../cert/nginx/nginx-ca.crt"
 }
 
 template {
   source      = "nginx-cert.tpl"
-  destination = "../cert/nginx.crt"
+  destination = "../cert/nginx/nginx.crt"
 }
 
 template {
   source      = "nginx-key.tpl"
-  destination = "../cert/nginx.key"
+  destination = "../cert/nginx/nginx.key"
+}
+
+template {
+  source      = "service-key.tpl"
+  destination = "../cert/service/go-app-service.key"
+}
+template {
+  source      = "service-cert.tpl"
+  destination = "../cert/service/go-app-service.crt"
 }

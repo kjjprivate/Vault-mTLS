@@ -10,18 +10,13 @@ terraform {
 provider "vault" {
   # vault server 의 주소를 지정해줍니다.
   address = "https://example.test:8200"
-  token   = "hvs.z9hfMmOV1rNamIcO3z5jUH64"
-  # vault server에 인증을 위한 값을 넣어줍니다.
+  # vault를 init한 후 생성된 root token을 넣어줍니다.
+  token   = "root token"
+  # mTLS 사용을 위해 사전에 생성한 client 인증서에 대한 설정을 해줍니다.
   client_auth {
-    cert_file = "/Users/hiros/Documents/Git_kjjprivate/Vault-mTLS-demo/cert/client.crt"
-    key_file = "/Users/hiros/Documents/Git_kjjprivate/Vault-mTLS-demo/cert/vault_server.key"
+    cert_file = "/Users/jaejin/Documents/jjGitRepo/Vault-mTLS/cert/service.crt"
+    key_file = "/Users/jaejin/Documents/jjGitRepo/Vault-mTLS/cert/service.key"
   }
-  #auth_login {
-  #path = "auth/approle/login"
-  #parameters = {
-  #  role_id   = var.login_approle_role_id
-  #  secret_id = var.login_approle_secret_id
-  #}
 }
 
 # vault policy를 생성합니다.
@@ -39,8 +34,12 @@ path "sys/mounts" {
 }
 
 # Work with pki secrets engine
-path "pki*" {
+path "pki/*" {
   capabilities = [ "create", "read", "update", "delete", "list", "sudo" ]
+}
+
+path "secret/*" {
+  capabilities = ["read"]
 }
 EOT
 }
@@ -57,20 +56,7 @@ resource "vault_approle_auth_backend_role" "role1" {
   token_policies = ["default", "pki-policy"]
 }
 
-
-
-/*
-output "approle_role_id" {
-  value = vault_approle_auth_backend_role.role1.role_id
-}
-
-output "approle_secret_id" {
-  value = vault_approle_auth_backend_role_secret_id.role1.secret_id
-}
-*/
-
-
-##vault pki engine 사용
+##vault pki engine 사용하도록 enable설정을 해줍니다.
 resource "vault_mount" "pki" {
   path                      = "pki"
   type                      = "pki"
@@ -78,6 +64,7 @@ resource "vault_mount" "pki" {
   max_lease_ttl_seconds     = 864000
 }
 
+#vault pki 시크릿 엔진의 root 인증서에 대한 config를 설정해줍니다.
 resource "vault_pki_secret_backend_root_cert" "test" {
   depends_on           = [vault_mount.pki]
   backend              = vault_mount.pki.path
@@ -108,10 +95,45 @@ resource "vault_pki_secret_backend_config_urls" "example" {
   ]
 }
 
+#backend role을 통해 example.test 도메인에 대한 인증서를 발급 받기위한 설정을 해줍니다.
 resource "vault_pki_secret_backend_role" "role" {
   backend          = vault_mount.pki.path
   name             = "example-dot-com"
-  ttl              = "72h"
   allowed_domains  = ["example.test"]
   allow_subdomains = true
+  enforce_hostnames = false
+  ## 정규 도메인(.com,net 등)이 아닌 프라이빗한 도메인도 사용가능하도록 하는 설정입니다.
+  allow_any_name = true
+  allow_bare_domains = true
+  
+}
+
+
+#go app에서 사용할 vault의 secret을 만들어줍니다.
+#해당 부분에서는 kv엔진을 이용해 간단한 secret을 만들어주었습니다.
+resource "vault_mount" "kvv2" {
+  path        = "secret"
+  type        = "kv"
+  options     = { version = "2" }
+  description = "KV Version 2 secret engine mount"
+}
+
+resource "vault_kv_secret_v2" "example" {
+  mount                      = vault_mount.kvv2.path
+  name                       = "secret"
+  cas                        = 1
+  delete_all_versions        = true
+  data_json                  = jsonencode(
+  {
+    zip       = "zap",
+    foo       = "bar"
+  }
+  )
+  custom_metadata {
+    max_versions = 5
+    data = {
+      foo = "vault@example.com",
+      bar = "12345"
+    }
+  }
 }

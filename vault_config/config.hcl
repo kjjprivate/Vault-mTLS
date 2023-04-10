@@ -10,10 +10,10 @@ listener "tcp" {
  address = "127.0.0.1:8200"
  
  tls_cert_file="../cert/vault_server.crt"
- tls_key_file="../cert/vault_server.key"
+ tls_key_file="../cert/root.key"
 
  tls_require_and_verify_client_cert = "true"
- tls_client_ca_file="../cert/client.crt"
+ tls_client_ca_file="../cert/service.crt"
 }
 
 api_addr="https://example.test:8200"
