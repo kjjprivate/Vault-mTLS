@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -54,12 +53,25 @@ func main() {
 		if err != nil {
 			log.Fatal("err:", err)
 		}
+		ClientToken := AppRoleLogin.Auth.ClientToken
+		rsp, err := client.Secrets.KVv2Read(
+			context.Background(),
+			"secret",
+			vault.WithToken(ClientToken),
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		fmt.Println(string(AuthData))
-		/*
-			token := AppRoleLogin.Auth.ClientToken
-			log.Println("token:", token)
-		*/
+		kvData, err := json.MarshalIndent(rsp.Data, "", "   ")
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("AuthData:", string(AuthData))
+		log.Println("secretData:", string(kvData))
+		
 		time.Sleep(10 * time.Second)
 
 	}

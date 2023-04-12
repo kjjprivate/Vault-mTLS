@@ -2,7 +2,7 @@ terraform {
   required_providers {
     vault = {
       source  = "hashicorp/vault"
-      version = "3.0.0"
+      version = "3.14.0"
     }
   }
 }
@@ -11,11 +11,11 @@ provider "vault" {
   # vault server 의 주소를 지정해줍니다.
   address = "https://example.test:8200"
   # vault를 init한 후 생성된 root token을 넣어줍니다.
-  token   = "root token"
+  token   = "hvs.Uv9Z0XCeHIhEfIuzGprvsRSy"
   # mTLS 사용을 위해 사전에 생성한 client 인증서에 대한 설정을 해줍니다.
   client_auth {
-    cert_file = "/Users/jaejin/Documents/jjGitRepo/Vault-mTLS/cert/service.crt"
-    key_file = "/Users/jaejin/Documents/jjGitRepo/Vault-mTLS/cert/service.key"
+    cert_file = "../cert/service.crt"
+    key_file = "../cert/service.key"
   }
 }
 
@@ -117,8 +117,13 @@ resource "vault_mount" "kvv2" {
   options     = { version = "2" }
   description = "KV Version 2 secret engine mount"
 }
+resource "time_sleep" "wait_3_seconds" {
+  depends_on = [vault_mount.kvv2]
+  create_duration = "3s"
+}
 
 resource "vault_kv_secret_v2" "example" {
+  depends_on = [time_sleep.wait_3_seconds]
   mount                      = vault_mount.kvv2.path
   name                       = "secret"
   cas                        = 1
