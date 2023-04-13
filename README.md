@@ -21,8 +21,14 @@ mTLS 통신은 기관과 기관간의 통신에 주로 이용되고 client도 �
 ### 구성
 
 #### 구성도
-```mermaid
-sequenceDiagram
+```sequence
+
+Application -> Nginx
+Nginx ->  Application
+Nginx -> Vault
+Vault -> Nginx
+
+
 ```
 ##### 구성파일 다운로드
 ```bash
